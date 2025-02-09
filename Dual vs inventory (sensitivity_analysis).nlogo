@@ -57,7 +57,8 @@ to setup
   clear-all
   set target-ticks (episode * 52)
   ;random-seed 12345
-  random-seed (disruption-frequency * 100 + recovery * 100)
+  let unique-seed (disruption-frequency * 1000 + recovery * 10000)
+  random-seed unique-seed  ; 고유 seed 설정
   setup-python
   setup-csv
   layout
@@ -68,13 +69,14 @@ to setup
   set contract 0
   set is-disrupted false
   set next-disruption-timer round random-exponential (52 / disruption-frequency)
-  show (word "next-disruption-timer : " next-disruption-timer )
+  ;show (word "next-disruption-timer : " next-disruption-timer )
   reset-ticks
 end
 
 to setup-csv
   ; 동적으로 파일 이름 생성
-  set csv-filename (word "Data_" Version "_" disruption-frequency "_" recovery "_"coefficient-of-variation "_w" ordering-cost-of-primary-supplier ".csv")
+  set csv-filename (word "Data_" Version "_" disruption-frequency "_" recovery "_"coefficient-of-variation ".csv")
+  ;set csv-filename (word "Data_" Version "_" disruption-frequency "_" recovery "_"coefficient-of-variation ".csv")
   ;set csv-filename (word "manufacturer_data_" Version "_" disruption-frequency "_" recovery ".csv")
   ;set csv-filename (word "Fixed_" Version "_" disruption-frequency "_" recovery "_"coefficient-of-variation".csv")
   ;set csv-filename (word "Safety-stock_" Version "_" disruption-frequency "_" recovery "_"coefficient-of-variation "_" safety-stock ".csv")
@@ -292,6 +294,7 @@ to dual-supplier-contract
   ]
 end
 
+
 to manage-disruptions
   ifelse is-disrupted [
     ; 회복 중인 경우
@@ -300,10 +303,17 @@ to manage-disruptions
     ] [
       ; 회복 완료
       set is-disrupted false
-      let next-disruption-period random-exponential (52 / disruption-frequency )
+      ; next-disruption-timer 계산 (seed 고정)
+      ifelse disruption-frequency = 4 and recovery = 57.8 [
+        let unique-seed ticks + (disruption-frequency * 1000000 + recovery * 1000000)
+        random-seed unique-seed
+      ]
+      [
+      let unique-seed ticks + (disruption-frequency * 1000 + recovery * 10000)
+      random-seed unique-seed]
+      let next-disruption-period random-exponential (52 / disruption-frequency)
       set next-disruption-timer round (next-disruption-period + 0.5)
       show (word "next-disruption-timer : " next-disruption-timer )
-      ;show "Disruption ended. System recovered."
     ]
   ] [
     ; 장애가 발생하지 않은 경우
@@ -312,9 +322,17 @@ to manage-disruptions
     ] [
       ; 장애 발생
       set is-disrupted true
-      ;random-seed (disruption-frequency * 100 + recovery * 100)
+      ; recovery-timer 계산 (seed 고정)
+      ifelse disruption-frequency = 4 and recovery = 57.8 [
+        let unique-seed ticks + (disruption-frequency * 1000000 + recovery * 1000000)
+        random-seed unique-seed
+      ]
+      [
+        let unique-seed ticks + (recovery * 1000 + disruption-frequency * 10000)
+        random-seed unique-seed
+      ]
       let recover-period random-exponential (52 / recovery)
-      set recovery-timer round (recover-period + 0.5)  ; 평균 2주 회복 시간 설정
+      set recovery-timer round (recover-period + 0.5)
       if recovery-timer = 0 [
         set recovery-timer 1
       ]
@@ -564,7 +582,7 @@ disruption-frequency
 disruption-frequency
 0
 100
-6.0
+2.0
 1
 1
 NIL
@@ -579,7 +597,7 @@ recovery
 recovery
 0
 200
-52.0
+4.3
 1
 1
 NIL
@@ -593,7 +611,7 @@ CHOOSER
 Version
 Version
 "Dual-sourcing" "inventory-strategy" "Wholesale"
-2
+0
 
 BUTTON
 49
@@ -657,7 +675,7 @@ ordering-cost-of-primary-supplier
 0
 1000
 20.0
-10
+5
 1
 NIL
 HORIZONTAL
@@ -671,7 +689,7 @@ reservation-cost
 reservation-cost
 0
 100
-5.0
+3.0
 1
 1
 NIL
@@ -686,7 +704,7 @@ exercise-cost
 exercise-cost
 0
 500
-30.0
+25.0
 1
 1
 NIL
@@ -771,7 +789,7 @@ episode
 episode
 0
 10000
-200.0
+1000.0
 1
 1
 NIL
@@ -828,7 +846,7 @@ safety-stock
 safety-stock
 0
 10000
-300.0
+1747.0
 100
 1
 NIL
@@ -843,7 +861,7 @@ holding-cost
 holding-cost
 0
 100
-0.09615384615384616
+0.19230769230769232
 0.1
 1
 NIL
@@ -858,7 +876,7 @@ option-order-quantity
 option-order-quantity
 0
 10000
-999.0
+2958.0
 100
 1
 NIL
@@ -873,7 +891,22 @@ yearly-holding-cost
 yearly-holding-cost
 0
 100
-5.0
+10.0
+2
+1
+NIL
+HORIZONTAL
+
+SLIDER
+958
+151
+1130
+184
+exp_num
+exp_num
+0
+100
+1.0
 1
 1
 NIL
